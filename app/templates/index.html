@@ -41,6 +41,7 @@
                         <form method="POST" action="{{ url_for('delete_task', id=task.id) }}" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
+                        <a href="{{ url_for('add_planned_expense', task_id=task.id) }}" class="btn btn-sm btn-primary">Add Planned Expense</a>
                         <a href="{{ url_for('add_actual_expense', task_id=task.id) }}" class="btn btn-sm btn-primary">Add Actual Expense</a>
                     </td>
                 </tr>
