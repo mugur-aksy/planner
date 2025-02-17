@@ -70,7 +70,9 @@
                                 <!-- Ячейка задачи -->
                                 <td colspan="{{ colspan }}">
                                     <div class="mb-2">
-                                        <strong>{{ task.title }}</strong><br>
+                                        <a href="{{ url_for('task', id=task.id) }}" class="btn btn-sm btn-info">{{ task.title }}</a>
+<!--                                        <strong>{{ task.title }}</strong>-->
+                                        <br>
                                         <small>
                                             {{ task.start_date.strftime('%d.%m') }} - {{ task.end_date.strftime('%d.%m') }}<br>
                                             {% if task.planned_expenses %}

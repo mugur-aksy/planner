@@ -22,34 +22,12 @@
         </div>
     </div>
 
-    <!-- Отображение фактических затрат -->
-    {% if task.expenses %}
-        <h4 class="mt-4">Expenses</h4>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Invoice Number</th>
-                    <th>Actual Cost</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in task.expenses %}
-                    <tr>
-                        <td>{{ expense.month }}</td>
-                        <td>{{ expense.invoice_number }}</td>
-                        <td>{{ expense.actual_cost }}</td>
-                        <td>{{ expense.description }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
 
-    <!-- Кнопка для добавления затрат -->
-    <a href="{{ url_for('add_actual_expense', task_id=task.id) }}" class="btn btn-primary">Add Actual Expense</a>
+    <!-- Кнопка для добавления плановых затрат -->
+    <a href="{{ url_for('add_planned_expense', task_id=task.id) }}" class="btn btn-warning">Add Planned Expense</a>
+    <!-- Кнопка для добавления фактических затрат -->
+    <a href="{{ url_for('add_actual_expense', task_id=task.id) }}" class="btn btn-success">Add Actual Expense</a>
 
     <!-- Ссылка на главную страницу -->
-    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Tasks</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary ">Back to Tasks</a>
 {% endblock %}
