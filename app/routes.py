@@ -42,7 +42,6 @@ def create_task():
 def edit_task(id):
     task = Task.query.get_or_404(id)
     if request.method == 'POST':
-        cost = request.form['cost'] if request.form['cost'] else None  # Обновляем стоимость, если она указана
         task.department_id = request.form['department_id']
         task.assignee_id = request.form['assignee_id']
         task.title = request.form['title']
@@ -92,6 +91,29 @@ def add_planned_expense(task_id):
         return redirect(url_for('task', id=task.id))
     return render_template('add_planned_expense.html', task=task)
 
+# Редактирование плановой затраты
+@app.route('/task/<int:task_id>/edit-planned-expense/<int:expense_id>', methods=['GET', 'POST'])
+def edit_planned_expense(task_id, expense_id):
+    task = Task.query.get_or_404(task_id)
+    planned_expense = PlannedExpense.query.get_or_404(expense_id)
+
+    if request.method == 'POST':
+        planned_expense.date = datetime.fromisoformat(request.form['date'])
+        planned_expense.amount = float(request.form['amount'])
+        planned_expense.description = request.form['description']
+        db.session.commit()
+        return redirect(url_for('task', id=task.id))
+
+    return render_template('edit_planned_expense.html', task=task, planned_expense=planned_expense)
+
+# Удаление плановой затраты
+@app.route('/task/<int:task_id>/delete-planned-expense/<int:expense_id>', methods=['POST'])
+def delete_planned_expense(task_id, expense_id):
+    planned_expense = PlannedExpense.query.get_or_404(expense_id)
+    db.session.delete(planned_expense)
+    db.session.commit()
+    return redirect(url_for('task', id=task_id))
+
 @app.route('/task/<int:task_id>/add-actual-expense', methods=['GET', 'POST'])
 def add_actual_expense(task_id):
     task = Task.query.get_or_404(task_id)
@@ -108,6 +130,29 @@ def add_actual_expense(task_id):
         return redirect(url_for('task', id=task.id))
     return render_template('add_actual_expense.html', task=task)
 
+# Редактирование фактической затраты
+@app.route('/task/<int:task_id>/edit-actual-expense/<int:expense_id>', methods=['GET', 'POST'])
+def edit_actual_expense(task_id, expense_id):
+    task = Task.query.get_or_404(task_id)
+    actual_expense = ActualExpense.query.get_or_404(expense_id)
+
+    if request.method == 'POST':
+        actual_expense.date = datetime.fromisoformat(request.form['date'])
+        actual_expense.amount = float(request.form['amount'])
+        actual_expense.invoice_number = request.form['invoice_number']
+        actual_expense.description = request.form['description']
+        db.session.commit()
+        return redirect(url_for('task', id=task.id))
+
+    return render_template('edit_actual_expense.html', task=task, actual_expense=actual_expense)
+
+# Удаление фактической затраты
+@app.route('/task/<int:task_id>/delete-actual-expense/<int:expense_id>', methods=['POST'])
+def delete_actual_expense(task_id, expense_id):
+    actual_expense = ActualExpense.query.get_or_404(expense_id)
+    db.session.delete(actual_expense)
+    db.session.commit()
+    return redirect(url_for('task', id=task_id))
 
 @app.route('/calendar')
 def calendar():

@@ -58,10 +58,6 @@
                 <option value="Проекты">Проекты</option>
             </select>
         </div>
-        <div class="mb-3">
-            <label for="planned_cost" class="form-label">Planned Cost (optional):</label>
-            <input type="number" class="form-control" id="planned_cost" name="planned_cost" step="0.01" min="0">
-        </div>
         <button type="submit" class="btn btn-primary">Create Task</button>
     </form>
     <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Tasks</a>

@@ -22,6 +22,74 @@
         </div>
     </div>
 
+    <!-- Секция для плановых затрат -->
+    <div class="mt-4">
+        <h4>Planned Expenses</h4>
+        {% if task.planned_expenses %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for expense in task.planned_expenses %}
+                    <tr>
+                        <td>{{ expense.date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ expense.amount }}</td>
+                        <td>{{ expense.description }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_planned_expense', task_id=task.id, expense_id=expense.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_planned_expense', task_id=task.id, expense_id=expense.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No planned expenses for this task.</p>
+        {% endif %}
+    </div>
+
+    <!-- Секция для фактических затрат -->
+    <div class="mt-4">
+        <h4>Actual Expenses</h4>
+        {% if task.actual_expenses %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Invoice Number</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for expense in task.actual_expenses %}
+                    <tr>
+                        <td>{{ expense.date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ expense.amount }}</td>
+                        <td>{{ expense.invoice_number }}</td>
+                        <td>{{ expense.description }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_actual_expense', task_id=task.id, expense_id=expense.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_actual_expense', task_id=task.id, expense_id=expense.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No actual expenses for this task.</p>
+        {% endif %}
+    </div>
+
 
     <!-- Кнопка для добавления плановых затрат -->
     <a href="{{ url_for('add_planned_expense', task_id=task.id) }}" class="btn btn-warning">Add Planned Expense</a>
