@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Calendar</h2>
+
+    <!-- Фильтры -->
+    <form method="GET" class="mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="department" class="form-label">Department:</label>
+                <select id="department" name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for department in departments %}
+                        <option value="{{ department.name }}" {% if department.name == selected_department %}selected{% endif %}>
+                            {{ department.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="task_type" class="form-label">Task Type:</label>
+                <select id="task_type" name="task_type" class="form-select">
+                    <option value="">All Task Types</option>
+                    {% for task_type in task_types %}
+                        <option value="{{ task_type }}" {% if task_type == selected_task_type %}selected{% endif %}>
+                            {{ task_type }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 align-self-end">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Таблица -->
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Department / Task Type</th>
+                    {% for month in months %}
+                        <th>{{ month }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for department, task_types in grouped_tasks.items() %}
+                    <tr>
+                        <td colspan="{{ months|length + 1 }}" class="bg-light">
+                            <strong>{{ department }}</strong>
+                        </td>
+                    </tr>
+                    {% for task_type, tasks in task_types.items() %}
+                        <tr>
+                            <td>{{ task_type }}</td>
+                            {% for task in tasks %}
+                                {% set start_month = task.start_date.strftime('%B') %}
+                                {% set end_month = task.end_date.strftime('%B') %}
+                                {% set start_index = months.index(start_month) %}
+                                {% set end_index = months.index(end_month) %}
+                                {% set colspan = end_index - start_index + 1 %}
+
+                                <!-- Пустые ячейки до начала задачи -->
+                                {% for _ in range(start_index) %}
+                                    <td></td>
+                                {% endfor %}
+
+                                <!-- Ячейка задачи -->
+                                <td colspan="{{ colspan }}">
+                                    <div class="mb-2">
+                                        <strong>{{ task.title }}</strong><br>
+                                        <small>
+                                            {{ task.start_date.strftime('%d.%m') }} - {{ task.end_date.strftime('%d.%m') }}<br>
+                                            {% if task.planned_expenses %}
+                                                <strong>Planned Costs:</strong><br>
+                                                {% for expense in task.planned_expenses %}
+                                                    - {{ expense.date.strftime('%d.%m.%Y') }}: {{ expense.amount }} ({{ expense.description }})<br>
+                                                {% endfor %}
+                                            {% endif %}
+                                            {% if task.actual_expenses %}
+                                                <strong>Actual Costs:</strong><br>
+                                                {% for expense in task.actual_expenses %}
+                                                    - {{ expense.date.strftime('%d.%m.%Y') }}: {{ expense.amount }} ({{ expense.description }})<br>
+                                                {% endfor %}
+                                            {% endif %}
+                                            Assignee: {{ task.assignee.name }}
+                                        </small>
+                                    </div>
+                                </td>
+
+                                <!-- Пустые ячейки после окончания задачи -->
+                                {% for _ in range(end_index + 1, months|length) %}
+                                    <td></td>
+                                {% endfor %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+
+                    <!-- Результирующая строка для отдела -->
+                    <tr class="table-info">
+                        <td><strong>Total for {{ department }}</strong></td>
+                        {% for month in months %}
+                            <td>
+                                <strong>Tasks:</strong> {{ department_results[department]['task_count'][month] }}<br>
+                                <strong>Planned Cost:</strong> {{ department_results[department]['planned_cost'][month] }}<br>
+                                <strong>Actual Cost:</strong> {{ department_results[department]['actual_cost'][month] }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+
+                <!-- Общая результирующая строка -->
+                <tr class="table-success">
+                    <td><strong>Total for All Departments</strong></td>
+                    {% for month in months %}
+                        <td>
+                            <strong>Tasks:</strong> {{ total_results['task_count'][month] }}<br>
+                            <strong>Planned Cost:</strong> {{ total_results['planned_cost'][month] }}<br>
+                            <strong>Actual Cost:</strong> {{ total_results['actual_cost'][month] }}
+                        </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Ссылка на доску задач -->
+    <a href="{{ url_for('kanban') }}" class="btn btn-secondary mt-3">Go to Task Board</a>
+{% endblock %}

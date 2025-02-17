@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Task Board</h2>
+
+    <!-- Фильтр по департаментам -->
+    <div class="mb-4">
+        <label for="department-filter" class="form-label">Filter by Department:</label>
+        <select id="department-filter" class="form-select">
+            <option value="">All Departments</option>
+            {% for department in departments %}
+                <option value="{{ department.id }}">{{ department.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Доска задач -->
+    <div class="row">
+        <!-- Колонка "To Do" -->
+        <div class="col-md-4">
+            <h4>To Do</h4>
+            <div id="todo" class="kanban-column">
+                {% for task in tasks if task.status == 'todo' %}
+                    <div class="card mb-2" data-task-id="{{ task.id }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ task.title }}</h5>
+                            <p class="card-text" style="display: none;">{{ task.department.id }}</p>  <!-- Скрытый ID департамента -->
+                            <p class="card-text">{{ task.department.name }}</p>
+                            <p class="card-text"><small>{{ task.start_date }} - {{ task.end_date }}</small></p>
+                            <p class="card-text"><strong>Status:</strong> {{ task.status }}</p>
+                            {% if task.planned_cost %}
+                                <p class="card-text"><strong>Cost:</strong> {{ task.planned_cost }}</p>
+                            {% endif %}
+                            <p class="card-text"><strong>Task Type:</strong> {{ task.task_type }}</p>
+                            <a href="{{ url_for('edit_task', id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Колонка "In Progress" -->
+        <div class="col-md-4">
+            <h4>In Progress</h4>
+            <div id="in-progress" class="kanban-column">
+                {% for task in tasks if task.status == 'in_progress' %}
+                    <div class="card mb-2" data-task-id="{{ task.id }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ task.title }}</h5>
+                            <p class="card-text" style="display: none;">{{ task.department.id }}</p>  <!-- Скрытый ID департамента -->
+                            <p class="card-text">{{ task.department.name }}</p>
+                            <p class="card-text"><small>{{ task.start_date }} - {{ task.end_date }}</small></p>
+                            <p class="card-text"><strong>Status:</strong> {{ task.status }}</p>
+                            {% if task.planned_cost %}
+                                <p class="card-text"><strong>Cost:</strong> {{ task.planned_cost }}</p>
+                            {% endif %}
+                            <p class="card-text"><strong>Task Type:</strong> {{ task.task_type }}</p>
+                            <a href="{{ url_for('edit_task', id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Колонка "Done" -->
+        <div class="col-md-4">
+            <h4>Done</h4>
+            <div id="done" class="kanban-column">
+                {% for task in tasks if task.status == 'done' %}
+                    <div class="card mb-2" data-task-id="{{ task.id }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ task.title }}</h5>
+                            <p class="card-text" style="display: none;">{{ task.department.id }}</p>  <!-- Скрытый ID департамента -->
+                            <p class="card-text">{{ task.department.name }}</p>
+                            <p class="card-text"><small>{{ task.start_date }} - {{ task.end_date }}</small></p>
+                            <p class="card-text"><strong>Status:</strong> {{ task.status }}</p>
+                            {% if task.planned_cost %}
+                                <p class="card-text"><strong>Cost:</strong> {{ task.planned_cost }}</p>
+                            {% endif %}
+                            <p class="card-text"><strong>Task Type:</strong> {{ task.task_type }}</p>
+                            <a href="{{ url_for('edit_task', id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <script>
+        // Инициализация SortableJS для каждой колонки
+        const todoColumn = document.getElementById('todo');
+        const inProgressColumn = document.getElementById('in-progress');
+        const doneColumn = document.getElementById('done');
+
+        // Функция для определения статуса по колонке
+        function getStatusByColumn(column) {
+            if (column === todoColumn) return 'todo';
+            if (column === inProgressColumn) return 'in_progress';
+            if (column === doneColumn) return 'done';
+            return 'todo';  // По умолчанию
+        }
+
+        // Инициализация SortableJS
+        new Sortable(todoColumn, {
+            group: 'tasks',
+            animation: 200,
+            ghostClass: 'bg-warning',  // Класс для "призрачного" элемента
+            chosenClass: 'bg-light',   // Класс для выбранного элемента
+            dragClass: 'bg-primary',   // Класс для перетаскиваемого элемента
+            onEnd: function (evt) {
+                const taskId = evt.item.dataset.taskId;
+                const newStatus = getStatusByColumn(evt.to);  // Определяем целевую колонку
+                updateTaskStatus(taskId, newStatus);
+            }
+        });
+
+        new Sortable(inProgressColumn, {
+            group: 'tasks',
+            animation: 200,
+            ghostClass: 'bg-warning',
+            chosenClass: 'bg-light',
+            dragClass: 'bg-primary',
+            onEnd: function (evt) {
+                const taskId = evt.item.dataset.taskId;
+                const newStatus = getStatusByColumn(evt.to);
+                updateTaskStatus(taskId, newStatus);
+            }
+        });
+
+        new Sortable(doneColumn, {
+            group: 'tasks',
+            animation: 200,
+            ghostClass: 'bg-warning',
+            chosenClass: 'bg-light',
+            dragClass: 'bg-primary',
+            onEnd: function (evt) {
+                const taskId = evt.item.dataset.taskId;
+                const newStatus = getStatusByColumn(evt.to);
+                updateTaskStatus(taskId, newStatus);
+            }
+        });
+
+        // Функция для обновления статуса задачи
+        async function updateTaskStatus(taskId, status) {
+            const response = await fetch(`/task/${taskId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: status })
+            });
+            if (!response.ok) {
+                alert('Failed to update task status');
+            }
+        }
+
+        // Фильтрация задач по департаменту
+        document.getElementById('department-filter').addEventListener('change', function() {
+            const departmentId = this.value;
+            const tasks = document.querySelectorAll('.kanban-column .card');
+
+            tasks.forEach(task => {
+                const taskDepartmentId = task.querySelector('.card-text').textContent.trim();
+                if (departmentId === '' || taskDepartmentId === departmentId) {
+                    task.style.display = 'block';
+                } else {
+                    task.style.display = 'none';
+                }
+            });
+        });
+    </script>
+{% endblock %}

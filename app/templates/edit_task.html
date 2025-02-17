@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Edit Task</h2>
+    <form method="POST" action="{{ url_for('edit_task', id=task.id) }}">
+        <div class="mb-3">
+            <label for="department_id" class="form-label">Department:</label>
+            <select class="form-select" id="department_id" name="department_id" required onchange="updateAssignees()">
+                <option value="">Select Department</option>
+                {% for department in departments %}
+                    <option value="{{ department.id }}" {% if task.department_id == department.id %}selected{% endif %}>
+                        {{ department.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="assignee_id" class="form-label">Assignee:</label>
+            <select class="form-select" id="assignee_id" name="assignee_id" required>
+                <option value="">Select Assignee</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="title" class="form-label">Title:</label>
+            <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="start_date" class="form-label">Start Date:</label>
+            <input type="datetime-local" class="form-control" id="start_date" name="start_date" value="{{ task.start_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="end_date" class="form-label">End Date:</label>
+            <input type="datetime-local" class="form-control" id="end_date" name="end_date" value="{{ task.end_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="priority" class="form-label">Priority:</label>
+            <select class="form-select" id="priority" name="priority" required>
+                <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Low</option>
+                <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="high" {% if task.priority == 'high' %}selected{% endif %}>High</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="status" class="form-label">Status:</label>
+            <select class="form-select" id="status" name="status" required>
+                <option value="todo" {% if task.status == 'todo' %}selected{% endif %}>To Do</option>
+                <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="done" {% if task.status == 'done' %}selected{% endif %}>Done</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="task_type" class="form-label">Task Type:</label>
+            <select class="form-select" id="task_type" name="task_type" required>
+                <option value="Эксплуатационный план" {% if task.task_type == 'Эксплуатационный план' %}selected{% endif %}>Эксплуатационный план</option>
+                <option value="Техподдержка" {% if task.task_type == 'Техподдержка' %}selected{% endif %}>Техподдержка</option>
+                <option value="ПО" {% if task.task_type == 'ПО' %}selected{% endif %}>ПО</option>
+                <option value="Обучение" {% if task.task_type == 'Обучение' %}selected{% endif %}>Обучение</option>
+                <option value="Отпуска" {% if task.task_type == 'Отпуска' %}selected{% endif %}>Отпуска</option>
+                <option value="Текущие задачи" {% if task.task_type == 'Текущие задачи' %}selected{% endif %}>Текущие задачи</option>
+                <option value="Проекты" {% if task.task_type == 'Проекты' %}selected{% endif %}>Проекты</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="cost" class="form-label">Cost (optional):</label>
+            <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0" value="{{ task.cost if task.cost else '' }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Tasks</a>
+
+    <script>
+        async function updateAssignees() {
+            const departmentId = document.getElementById("department_id").value;
+            const assigneeSelect = document.getElementById("assignee_id");
+
+            // Очищаем список исполнителей
+            assigneeSelect.innerHTML = '<option value="">Select Assignee</option>';
+
+            if (departmentId) {
+                // Запрашиваем исполнителей для выбранного департамента
+                const response = await fetch(`/api/departments/${departmentId}/assignees`);
+                const assignees = await response.json();
+
+                // Добавляем исполнителей в список
+                assignees.forEach(assignee => {
+                    const option = document.createElement("option");
+                    option.value = assignee.id;
+                    option.textContent = assignee.name;
+                    assigneeSelect.appendChild(option);
+                });
+
+                // Устанавливаем текущего исполнителя
+                const currentAssigneeId = "{{ task.assignee_id }}";
+                if (currentAssigneeId) {
+                    assigneeSelect.value = currentAssigneeId;
+                }
+            }
+        }
+
+        // Инициализация исполнителей при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAssignees();
+        });
+    </script>
+{% endblock %}

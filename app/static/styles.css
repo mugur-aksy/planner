@@ -1,0 +1,58 @@
+/* Стили для доски задач */
+.kanban-column {
+    background-color: #f8f9fa;  /* Светло-серый фон */
+    border: 2px solid #dee2e6;  /* Серая рамка */
+    border-radius: 8px;         /* Закругленные углы */
+    padding: 15px;              /* Отступы внутри колонки */
+    min-height: 400px;          /* Минимальная высота колонки */
+    transition: all 0.3s ease;  /* Плавные переходы */
+}
+
+.kanban-column:hover {
+    border-color: #007bff;      /* Синяя рамка при наведении */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Тень при наведении */
+}
+
+/* Стили для карточек задач */
+.card {
+    margin-bottom: 10px;        /* Отступ между карточками */
+    border: 1px solid #dee2e6;  /* Серая рамка */
+    border-radius: 8px;         /* Закругленные углы */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);  /* Тень */
+    transition: all 0.3s ease;  /* Плавные переходы */
+}
+
+.card:hover {
+    transform: translateY(-5px);  /* Поднимаем карточку при наведении */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);  /* Увеличиваем тень */
+}
+
+/* Цветовые рамки для колонок */
+#todo {
+    border-color: #ffc107;  /* Желтая рамка для "To Do" */
+}
+
+#in-progress {
+    border-color: #17a2b8;  /* Голубая рамка для "In Progress" */
+}
+
+#done {
+    border-color: #28a745;  /* Зеленая рамка для "Done" */
+}
+
+/* Заголовки колонок */
+h4 {
+    color: #343a40;          /* Темный цвет текста */
+    margin-bottom: 15px;     /* Отступ снизу */
+    font-weight: bold;       /* Жирный шрифт */
+}
+
+/* Классы для анимации SortableJS */
+.bg-warning {
+    background-color: rgba(255, 193, 7, 0.2) !important;  /* Желтый фон */
+}
+
+.bg-light {
+    background-color: rgba(248, 249, 250, 0.5) !important;  /* Светлый фон */
+}
+

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Create Task</h2>
+    <form method="POST" action="{{ url_for('create_task') }}">
+        <div class="mb-3">
+            <label for="department_id" class="form-label">Department:</label>
+            <select class="form-select" id="department_id" name="department_id" required onchange="updateAssignees()">
+                <option value="">Select Department</option>
+                {% for department in departments %}
+                    <option value="{{ department.id }}">{{ department.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="assignee_id" class="form-label">Assignee:</label>
+            <select class="form-select" id="assignee_id" name="assignee_id" required>
+                <option value="">Select Assignee</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="title" class="form-label">Title:</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="start_date" class="form-label">Start Date:</label>
+            <input type="datetime-local" class="form-control" id="start_date" name="start_date" required>
+        </div>
+        <div class="mb-3">
+            <label for="end_date" class="form-label">End Date:</label>
+            <input type="datetime-local" class="form-control" id="end_date" name="end_date" required>
+        </div>
+        <div class="mb-3">
+            <label for="priority" class="form-label">Priority:</label>
+            <select class="form-select" id="priority" name="priority" required>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="status" class="form-label">Status:</label>
+            <select class="form-select" id="status" name="status" required>
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="task_type" class="form-label">Task Type:</label>
+            <select class="form-select" id="task_type" name="task_type" required>
+                <option value="Эксплуатационный план">Эксплуатационный план</option>
+                <option value="Техподдержка">Техподдержка</option>
+                <option value="ПО">ПО</option>
+                <option value="Обучение">Обучение</option>
+                <option value="Отпуска">Отпуска</option>
+                <option value="Текущие задачи">Текущие задачи</option>
+                <option value="Проекты">Проекты</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="planned_cost" class="form-label">Planned Cost (optional):</label>
+            <input type="number" class="form-control" id="planned_cost" name="planned_cost" step="0.01" min="0">
+        </div>
+        <button type="submit" class="btn btn-primary">Create Task</button>
+    </form>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Tasks</a>
+
+    <script>
+        async function updateAssignees() {
+            const departmentId = document.getElementById("department_id").value;
+            const assigneeSelect = document.getElementById("assignee_id");
+
+            // Очищаем список исполнителей
+            assigneeSelect.innerHTML = '<option value="">Select Assignee</option>';
+
+            if (departmentId) {
+                // Запрашиваем исполнителей для выбранного департамента
+                const response = await fetch(`/api/departments/${departmentId}/assignees`);
+                const assignees = await response.json();
+
+                // Добавляем исполнителей в список
+                assignees.forEach(assignee => {
+                    const option = document.createElement("option");
+                    option.value = assignee.id;
+                    option.textContent = assignee.name;
+                    assigneeSelect.appendChild(option);
+                });
+            }
+        }
+    </script>
+{% endblock %}
