@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2 class="mb-4">Calendar</h2>
+    <h2 class="mb-4">Календарь</h2>
 
     <!-- Фильтры -->
     <form method="GET" class="mb-4">
         <div class="row">
             <div class="col-md-4">
-                <label for="department" class="form-label">Department:</label>
+                <label for="department" class="form-label">Отдел:</label>
                 <select id="department" name="department" class="form-select">
-                    <option value="">All Departments</option>
+                    <option value="">Все</option>
                     {% for department in departments %}
                         <option value="{{ department.name }}" {% if department.name == selected_department %}selected{% endif %}>
                             {{ department.name }}
@@ -18,9 +18,9 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label for="task_type" class="form-label">Task Type:</label>
+                <label for="task_type" class="form-label">Тип задачи:</label>
                 <select id="task_type" name="task_type" class="form-select">
-                    <option value="">All Task Types</option>
+                    <option value="">Все</option>
                     {% for task_type in task_types %}
                         <option value="{{ task_type }}" {% if task_type == selected_task_type %}selected{% endif %}>
                             {{ task_type }}
@@ -29,105 +29,133 @@
                 </select>
             </div>
             <div class="col-md-4 align-self-end">
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <button type="submit" class="btn btn-primary">Применить фильтр</button>
             </div>
         </div>
     </form>
 
     <!-- Таблица -->
     <div class="table-responsive">
-        <table class="table table-bordered">
+        <table class="table table-bordered" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 130px;"> <!-- Фиксированная ширина для столбца "Department / Task Type" -->
+                {% for month in months %}
+                    <col style="width: 120px;"> <!-- Фиксированная ширина для каждого месяца -->
+                {% endfor %}
+            </colgroup>
             <thead>
                 <tr>
-                    <th>Department / Task Type</th>
+                    <th>Отдел / Задачи</th>
                     {% for month in months %}
-                        <th>{{ month }}</th>
+                        <th style="text-align: center;">{{ month }}</th>
                     {% endfor %}
                 </tr>
             </thead>
-            <tbody>
-                {% for department, task_types in grouped_tasks.items() %}
-                    <tr>
-                        <td colspan="{{ months|length + 1 }}" class="bg-light">
-                            <strong>{{ department }}</strong>
-                        </td>
-                    </tr>
-                    {% for task_type, tasks in task_types.items() %}
-                        <tr>
-                            <td>{{ task_type }}</td>
-                            {% for task in tasks %}
-                                {% set start_month = task.start_date.strftime('%B') %}
-                                {% set end_month = task.end_date.strftime('%B') %}
-                                {% set start_index = months.index(start_month) %}
-                                {% set end_index = months.index(end_month) %}
-                                {% set colspan = end_index - start_index + 1 %}
+  <tbody>
+    {% for department, task_types in grouped_tasks.items() %}
+        <!-- Заголовок отдела -->
+        <tr>
+            <td colspan="{{ months|length + 1 }}" class="bg-light" style="text-align: center;">
+                <strong>{{ department }}</strong>
+            </td>
+        </tr>
 
-                                <!-- Пустые ячейки до начала задачи -->
-                                {% for _ in range(start_index) %}
-                                    <td></td>
-                                {% endfor %}
-
-                                <!-- Ячейка задачи -->
-                                <td colspan="{{ colspan }}">
-                                    <div class="mb-2">
-                                        <a href="{{ url_for('task', id=task.id) }}" class="btn btn-sm btn-info">{{ task.title }}</a>
-<!--                                        <strong>{{ task.title }}</strong>-->
-                                        <br>
-                                        <small>
-                                            {{ task.start_date.strftime('%d.%m') }} - {{ task.end_date.strftime('%d.%m') }}<br>
+        <!-- Строки для каждого типа задач в отделе -->
+        {% for task_type, month_tasks in task_types.items() %}
+            <tr>
+                <td>{{ task_type }}</td>
+                {% for month in months %}
+                    <td style="overflow: hidden; text-overflow: ellipsis;">
+                        <!-- Отображаем задачи для текущего месяца -->
+                        {% if month_tasks[month] %}
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                {% for task in month_tasks[month] %}
+                                 <!-- Определяем цвет карточки в зависимости от статуса -->
+                                                {% set btn_class = "btn-info" %} <!-- По умолчанию -->
+                                                {% if task.status == "todo" %}
+                                                    {% set btn_class = "btn-secondary" %}
+                                                {% elif task.status == "in_progress" %}
+                                                    {% set btn_class = "btn-warning" %}
+                                                {% elif task.status == "done" %}
+                                                    {% set btn_class = "btn-success" %}
+                                                {% elif task.status == "cancelled" %}
+                                                    {% set btn_class = "btn-danger" %}
+                                                {% elif task.status == "on_hold" %}
+                                                    {% set btn_class = "btn-light" %}
+                                                {% elif task.status == "archived" %}
+                                                    {% set btn_class = "btn-dark" %}
+                                                {% endif %}
+                                    <div class="task-card">
+                                        <a href="{{ url_for('task', id=task.id) }}"
+                                           class="btn btn-sm {{ btn_class }} mb-1">
+                                            {{ task.title }}
+                                            <!-- Иконки для planned_cost и actual_cost -->
                                             {% if task.planned_expenses %}
-                                                <strong>Planned Costs:</strong><br>
-                                                {% for expense in task.planned_expenses %}
-                                                    - {{ expense.date.strftime('%d.%m.%Y') }}: {{ expense.amount }} ({{ expense.description }})<br>
-                                                {% endfor %}
+                                                <i class="fas fa-coins ms-1" title="Planned Cost"></i>
                                             {% endif %}
                                             {% if task.actual_expenses %}
-                                                <strong>Actual Costs:</strong><br>
-                                                {% for expense in task.actual_expenses %}
-                                                    - {{ expense.date.strftime('%d.%m.%Y') }}: {{ expense.amount }} ({{ expense.description }})<br>
-                                                {% endfor %}
+                                                <i class="fas fa-receipt ms-1 spin" title="Actual Cost"></i>
                                             {% endif %}
-                                            Assignee: {{ task.assignee.name }}
-                                        </small>
+                                        </a>
+                                        <div class="small text-muted">
+                                            {{ task.start_date.strftime('%d.%m') }} - {{ task.end_date.strftime('%d.%m') }}
+                                            <br>
+                                            <span class="text-primary">{{ task.assignee.name }}</span>
+                                        </div>
                                     </div>
-                                </td>
-
-                                <!-- Пустые ячейки после окончания задачи -->
-                                {% for _ in range(end_index + 1, months|length) %}
-                                    <td></td>
                                 {% endfor %}
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-
-                    <!-- Результирующая строка для отдела -->
-                    <tr class="table-info">
-                        <td><strong>Total for {{ department }}</strong></td>
-                        {% for month in months %}
-                            <td>
-                                <strong>Tasks:</strong> {{ department_results[department]['task_count'][month] }}<br>
-                                <strong>Planned Cost:</strong> {{ department_results[department]['planned_cost'][month] }}<br>
-                                <strong>Actual Cost:</strong> {{ department_results[department]['actual_cost'][month] }}
-                            </td>
-                        {% endfor %}
-                    </tr>
+                            </div>
+                        {% endif %}
+                    </td>
                 {% endfor %}
+            </tr>
+        {% endfor %}
 
-                <!-- Общая результирующая строка -->
-                <tr class="table-success">
-                    <td><strong>Total for All Departments</strong></td>
-                    {% for month in months %}
-                        <td>
-                            <strong>Tasks:</strong> {{ total_results['task_count'][month] }}<br>
-                            <strong>Planned Cost:</strong> {{ total_results['planned_cost'][month] }}<br>
-                            <strong>Actual Cost:</strong> {{ total_results['actual_cost'][month] }}
-                        </td>
-                    {% endfor %}
-                </tr>
-            </tbody>
+        <!-- Итоговая строка для отдела -->
+        <tr class="table-info">
+            <td><strong>Итог для {{ department }}</strong></td>
+            {% for month in months %}
+                <td class="align-middle">
+                    <div class="small">
+                        <span class="fw-bold">Задач:</span> {{ department_results[department]['task_count'][month] }}<br>
+                        <span class="fw-bold">План:</span> {{ department_results[department]['planned_cost'][month] | format_currency }}<br>
+                        <span class="fw-bold">Потрачено:</span> {{ department_results[department]['actual_cost'][month] | format_currency }}
+                    </div>
+                </td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+
+    <!-- Общий итог для всех отделов -->
+    <tr class="table-success">
+        <td><strong>Итог по всем отделам</strong></td>
+        {% for month in months %}
+            <td class="align-middle">
+                <div class="small">
+                    <span class="fw-bold">Задач:</span> {{ total_results['task_count'][month] }}<br>
+                    <span class="fw-bold">План:</span> {{ total_results['planned_cost'][month] | format_currency }}<br>
+                    <span class="fw-bold">Потрачено:</span> {{ total_results['actual_cost'][month] | format_currency }}
+                </div>
+            </td>
+        {% endfor %}
+    </tr>
+</tbody>
         </table>
     </div>
 
     <!-- Ссылка на доску задач -->
-    <a href="{{ url_for('kanban') }}" class="btn btn-secondary mt-3">Go to Task Board</a>
+    <a href="{{ url_for('kanban') }}" class="btn btn-secondary mt-3">Перейти на доску задач</a>
+
+    <style>
+        .task-card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 6px;
+            background-color: #f8f9fa;
+            font-size: 12px;
+        }
+        .task-card:hover {
+            background-color: #e9ecef;
+        }
+    </style>
 {% endblock %}

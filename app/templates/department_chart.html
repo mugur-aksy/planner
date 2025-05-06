@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ department.name }} - Detailed Analytics ({{ selected_year }})</h2>
+        <a href="{{ url_for('charts', year=selected_year) }}" class="btn btn-secondary">
+            ← Back to Overview
+        </a>
+    </div>
+
+    {% if not tasks_data %}
+        <div class="alert alert-info">
+            No expense data available for this department in {{ selected_year }}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-header">
+                <h5>Tasks Breakdown</h5>
+            </div>
+            <div class="card-body">
+                {% for task_data in tasks_data %}
+                    <div class="task-chart-container mb-5">
+                        <h6 class="mb-3">
+                            <a href="{{ url_for('task', id=task_data.task.id) }}">
+                                {{ task_data.task.title }}
+                            </a>
+                        </h6>
+
+                        <!-- Проверка наличия данных -->
+                        {% set has_data = task_data.planned.values()|sum > 0 or task_data.actual.values()|sum > 0 %}
+
+                        {% if has_data %}
+                            <canvas id="task-chart-{{ loop.index }}"></canvas>
+                        {% else %}
+                            <p class="text-muted">No expense data for this task</p>
+                        {% endif %}
+
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ task_data.task.start_date.strftime('%d.%m.%Y') }} -
+                                {{ task_data.task.end_date.strftime('%d.%m.%Y') }}
+                            </small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            {% for task_data in tasks_data if task_data.planned.values()|sum > 0 or task_data.actual.values()|sum > 0 %}
+                new Chart(
+                    document.getElementById('task-chart-{{ loop.index }}'),
+                    {
+                        type: 'bar',
+                        data: {
+                            labels: monthNames,
+                            datasets: [
+                                {
+                                    label: 'Planned Cost',
+                                    data: [
+                                        {% for m in range(1, 13) %}
+                                            {{ task_data.planned.get(m, 0) }}{% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    ],
+                                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                                },
+                                {
+                                    label: 'Actual Cost',
+                                    data: [
+                                        {% for m in range(1, 13) %}
+                                            {{ task_data.actual.get(m, 0) }}{% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    ],
+                                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Amount (RUB)'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+            {% endfor %}
+        });
+    </script>
+
+    <style>
+        .task-chart-container {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .task-chart-container:last-child {
+            border-bottom: none;
+        }
+        canvas {
+            max-height: 300px;
+        }
+        .text-muted {
+            color: #6c757d!important;
+        }
+    </style>
+{% endblock %}

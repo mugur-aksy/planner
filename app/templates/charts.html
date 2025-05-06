@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Cost Analytics by Task Type</h2>
+
+    <!-- Фильтры -->
+    <form method="GET" class="mb-4">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="year" class="form-label">Year:</label>
+                <input type="number" id="year" name="year"
+                       value="{{ selected_year }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label for="department" class="form-label">Department:</label>
+                <select id="department" name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}"
+                            {% if dept.id == selected_department %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 align-self-end">
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Инициализация счетчика графиков -->
+    {% set chart_counter = namespace(value=0) %}
+
+    <!-- Контейнер для графиков -->
+    <div id="charts-container">
+        {% for department_name, dept_data in data.items() %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>
+                        <a href="{{ url_for('department_chart', department_id=dept_data.id, year=selected_year) }}"
+                           class="text-decoration-none">
+                            {{ department_name }}
+                        </a>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for task_type in task_types if task_type in dept_data.task_types %}
+                        <div class="mb-4">
+                            {% set chart_counter.value = chart_counter.value + 1 %}
+                            {% if dept_data.task_types[task_type].planned.values()|sum > 0 or dept_data.task_types[task_type].actual.values()|sum > 0 %}
+                                <!-- Отображаем график только если есть данные -->
+                                <h6>{{ task_type }}</h6>
+                                <!-- Передаем данные через data-атрибуты -->
+                                <canvas
+                                    id="chart-{{ chart_counter.value }}"
+                                    data-planned="{{ dept_data.task_types[task_type].planned.values()|list|tojson }}"
+                                    data-actual="{{ dept_data.task_types[task_type].actual.values()|list|tojson }}"
+                                ></canvas>
+                            {% else %}
+
+                            {% endif %}
+
+
+
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            // Обрабатываем все элементы canvas
+            document.querySelectorAll('[id^="chart-"]').forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+
+                // Получаем данные из data-атрибутов
+                const plannedData = JSON.parse(canvas.dataset.planned);
+                const actualData = JSON.parse(canvas.dataset.actual);
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: monthNames,
+                        datasets: [
+                            {
+                                label: 'Planned Cost',
+                                data: plannedData,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Actual Cost',
+                                data: actualData,
+                                backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount (RUB)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Months'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.raw.toLocaleString('ru-RU')} ₽`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <style>
+        .card {
+            margin-bottom: 20px;
+        }
+        canvas {
+            max-height: 400px;
+            margin-bottom: 15px;
+        }
+    </style>
+{% endblock %}

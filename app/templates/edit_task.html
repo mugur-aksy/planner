@@ -51,12 +51,13 @@
         <div class="mb-3">
             <label for="task_type" class="form-label">Task Type:</label>
             <select class="form-select" id="task_type" name="task_type" required>
+                <option value="Текущие задачи" {% if task.task_type == 'Текущие задачи' %}selected{% endif %}>Текущие задачи</option>
                 <option value="Эксплуатационный план" {% if task.task_type == 'Эксплуатационный план' %}selected{% endif %}>Эксплуатационный план</option>
                 <option value="Техподдержка" {% if task.task_type == 'Техподдержка' %}selected{% endif %}>Техподдержка</option>
                 <option value="ПО" {% if task.task_type == 'ПО' %}selected{% endif %}>ПО</option>
                 <option value="Обучение" {% if task.task_type == 'Обучение' %}selected{% endif %}>Обучение</option>
                 <option value="Отпуска" {% if task.task_type == 'Отпуска' %}selected{% endif %}>Отпуска</option>
-                <option value="Текущие задачи" {% if task.task_type == 'Текущие задачи' %}selected{% endif %}>Текущие задачи</option>
+                <option value="Отчеты" {% if task.task_type == 'Отчеты' %}selected{% endif %}>Отчеты</option>
                 <option value="Проекты" {% if task.task_type == 'Проекты' %}selected{% endif %}>Проекты</option>
             </select>
         </div>
