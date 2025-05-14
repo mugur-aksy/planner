@@ -3,12 +3,37 @@ from datetime import datetime
 from app import app, db
 from app.models import Task, Department, Assignee, PlannedExpense, ActualExpense
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 
 # Главная страница (список задач)
 @app.route('/')
 def index():
-    tasks = Task.query.all()
-    return render_template('index.html', tasks=tasks)
+    selected_department = request.args.get('department', type=int)
+    selected_task_type = request.args.get('task_type')
+
+    departments = Department.query.order_by(Department.name).all()
+    tasks = Task.query.order_by(Task.start_date).all()
+
+    # Сортировка типов задач в обратном алфавитном порядке
+    task_types = sorted(
+        {task.task_type for task in tasks},
+        reverse=True
+    )
+
+    # Фильтрация задач
+    query = Task.query.order_by(Task.start_date)
+    if selected_department:
+        query = query.filter_by(department_id=selected_department)
+    if selected_task_type:
+        query = query.filter_by(task_type=selected_task_type)
+    tasks = query.all()
+
+    return render_template('index.html',
+                           tasks=tasks,
+                           departments=departments,
+                           task_types=task_types,
+                           selected_department=selected_department,
+                           selected_task_type=selected_task_type)
 
 @app.route('/task/<int:id>')
 def task(id):
@@ -36,7 +61,6 @@ def create_task():
     departments = Department.query.all()
     return render_template('create_task.html', departments=departments)
 
-
 # Страница редактирования задачи
 @app.route('/task/<int:id>/edit', methods=['GET', 'POST'])
 def edit_task(id):
@@ -56,7 +80,6 @@ def edit_task(id):
     departments = Department.query.all()
     return render_template('edit_task.html', task=task, departments=departments)
 
-
 # Удаление задачи
 @app.route('/task/<int:id>/delete', methods=['POST'])
 def delete_task(id):
@@ -64,7 +87,6 @@ def delete_task(id):
     db.session.delete(task)
     db.session.commit()
     return redirect(url_for('index'))
-
 
 # Обновление статуса задачи (для доски задач)
 @app.route('/task/<int:id>/update-status', methods=['POST'])
@@ -74,7 +96,6 @@ def update_task_status(id):
     task.status = data['status']
     db.session.commit()
     return jsonify({'success': True})
-
 
 @app.route('/task/<int:task_id>/add-planned-expense', methods=['GET', 'POST'])
 def add_planned_expense(task_id):
@@ -158,89 +179,68 @@ def delete_actual_expense(task_id, expense_id):
 def calendar():
     tasks = Task.query.order_by(Task.department_id, Task.task_type, Task.start_date).all()
 
-    # Получаем список отделов и типов работ для фильтров
     departments = Department.query.all()
-    task_types = sorted(set(task.task_type for task in tasks))
+    task_types = sorted({task.task_type for task in tasks}, reverse=True)  # Обратная сортировка
 
-    # Фильтры из запроса
     selected_department = request.args.get('department')
     selected_task_type = request.args.get('task_type')
 
-    # Фильтрация задач
     filtered_tasks = tasks
     if selected_department:
-        filtered_tasks = [task for task in filtered_tasks if task.department.name == selected_department]
+        filtered_tasks = [t for t in filtered_tasks if t.department.name == selected_department]
     if selected_task_type:
-        filtered_tasks = [task for task in filtered_tasks if task.task_type == selected_task_type]
+        filtered_tasks = [t for t in filtered_tasks if t.task_type == selected_task_type]
 
-    # Получаем список месяцев
-    months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ]
+    months = ["January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
 
-    # Группировка задач по отделам, типам и месяцам
-    grouped_tasks = {}
+    # Группировка и сортировка данных
+    grouped_data = defaultdict(lambda: defaultdict(list))
+
     for task in filtered_tasks:
-        department_name = task.department.name
-        task_type = task.task_type
+        start_date = task.start_date.replace(day=1)
+        end_date = task.end_date.replace(day=1)
 
-        if department_name not in grouped_tasks:
-            grouped_tasks[department_name] = {}
-        if task_type not in grouped_tasks[department_name]:
-            grouped_tasks[department_name][task_type] = {month: [] for month in months}
+        months_spanned = []
+        current_date = start_date
+        while current_date <= end_date:
+            months_spanned.append(current_date.strftime('%B'))
+            current_date += relativedelta(months=1)
 
-        # Добавляем задачу в соответствующие месяцы
-        start_month = task.start_date.strftime('%B')
-        end_month = task.end_date.strftime('%B')
-        for month in months:
-            if month in [start_month, end_month]:
-                grouped_tasks[department_name][task_type][month].append(task)
+        # Считаем суммы расходов
+        total_planned = sum(exp.amount for exp in task.planned_expenses)
+        total_actual = sum(exp.amount for exp in task.actual_expenses)
 
-    # Результирующие данные для каждого отдела
-    department_results = {}
-    for department, task_types in grouped_tasks.items():
-        department_results[department] = {
-            'task_count': {month: 0 for month in months},
-            'planned_cost': {month: 0.0 for month in months},
-            'actual_cost': {month: 0.0 for month in months}
+        task_entry = {
+            'task': task,
+            'months_spanned': months_spanned,
+            'start_month': task.start_date.strftime('%B'),
+            'end_month': task.end_date.strftime('%B'),
+            'total_planned': total_planned,
+            'total_actual': total_actual
         }
-        for task_type, month_tasks in task_types.items():
-            for month, tasks in month_tasks.items():
-                department_results[department]['task_count'][month] += len(tasks)
-                for task in tasks:
-                    # Суммируем плановые траты
-                    for planned_expense in task.planned_expenses:
-                        if planned_expense.date.strftime('%B') == month:
-                            department_results[department]['planned_cost'][month] += planned_expense.amount
 
-                    # Суммируем фактические затраты
-                    for actual_expense in task.actual_expenses:
-                        if actual_expense.date.strftime('%B') == month:
-                            department_results[department]['actual_cost'][month] += actual_expense.amount
+        grouped_data[task.department.name][task.task_type].append(task_entry)
 
-    # Общая результирующая строка
-    total_results = {
-        'task_count': {month: 0 for month in months},
-        'planned_cost': {month: 0.0 for month in months},
-        'actual_cost': {month: 0.0 for month in months}
-    }
-    for department, results in department_results.items():
-        for month in months:
-            total_results['task_count'][month] += results['task_count'][month]
-            total_results['planned_cost'][month] += results['planned_cost'][month]
-            total_results['actual_cost'][month] += results['actual_cost'][month]
+    # Сортировка структуры данных
+    sorted_grouped_data = {}
+    for dept in sorted(grouped_data.keys()):
+        sorted_types = sorted(grouped_data[dept].keys(), reverse=True)
+        sorted_grouped_data[dept] = {
+            task_type: sorted(grouped_data[dept][task_type],
+                              key=lambda x: x['task'].start_date
+                              )
+            for task_type in sorted_types
+        }
 
     return render_template(
         'calendar.html',
-        grouped_tasks=grouped_tasks,
+        grouped_data=sorted_grouped_data,
         months=months,
         departments=departments,
         task_types=task_types,
         selected_department=selected_department,
-        selected_task_type=selected_task_type,
-        department_results=department_results,
-        total_results=total_results
+        selected_task_type=selected_task_type
     )
 
 # Получение событий для календаря
@@ -257,7 +257,6 @@ def calendar_events():
         })
     return jsonify(events)
 
-
 # Доска задач (Kanban Board)
 @app.route('/kanban')
 def kanban():
@@ -265,13 +264,11 @@ def kanban():
     departments = Department.query.all()
     return render_template('kanban.html', tasks=tasks, departments=departments)
 
-
 # Получение исполнителей для выбранного департамента (AJAX)
 @app.route('/api/departments/<int:department_id>/assignees')
 def get_assignees(department_id):
     assignees = Assignee.query.filter_by(department_id=department_id).all()
     return jsonify([{'id': a.id, 'name': a.name} for a in assignees])
-
 
 # Обновление дат задачи (для календаря)
 @app.route('/task/<int:id>/update-dates', methods=['POST'])
@@ -282,7 +279,6 @@ def update_task_dates(id):
     task.end_date = datetime.fromisoformat(data['end_date'])
     db.session.commit()
     return jsonify({'success': True})
-
 
 @app.route('/charts')
 def charts():
@@ -337,7 +333,6 @@ def charts():
         selected_year=selected_year,
         selected_department=selected_department
     )
-
 
 @app.route('/department/<int:department_id>/charts')
 def department_chart(department_id):

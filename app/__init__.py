@@ -34,4 +34,3 @@ def slugify(text):
 app.jinja_env.filters['slugify'] = slugify
 
 from app import routes, models
-

@@ -1,44 +1,179 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2 class="mb-4">Tasks</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Department</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Task Type</th>
-                <th>Assignee</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-                <tr>
-                    <td><a href="{{ url_for('task', id=task.id) }}" class="btn btn-sm btn-info">{{ task.title }}</a> </td>
-                    <td>{{ task.department.name }}</td>
-                    <td>{{ task.start_date.strftime('%d.%m.%Y') }}</td>
-                    <td>{{ task.end_date.strftime('%d.%m.%Y') }}</td>
-                    <td>{{ task.priority }}</td>
-                    <td>{{ task.status }}</td>
-                    <td>{{ task.task_type }}</td>
-                    <td>{{ task.assignee.name }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_task', id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form method="POST" action="{{ url_for('delete_task', id=task.id) }}" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                        </form>
-                        <a href="{{ url_for('add_planned_expense', task_id=task.id) }}" class="btn btn-sm btn-primary">Add Planned Expense</a>
-                        <a href="{{ url_for('add_actual_expense', task_id=task.id) }}" class="btn btn-sm btn-primary">Add Actual Expense</a>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <hr>
-    <a href="{{ url_for('create_task') }}" class="btn btn-primary">Create Task</a>
+    <center><h2 class="mb-4">Tasks</h2></center>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="department" class="form-label">Department</label>
+                    <select class="form-select" id="department" name="department">
+                        <option value="">All Departments</option>
+                        {% for department in departments %}
+                            <option value="{{ department.id }}"
+                                {% if department.id == selected_department %}selected{% endif %}>
+                                {{ department.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="task_type" class="form-label">Task Type</label>
+                    <select class="form-select" id="task_type" name="task_type">
+                        <option value="">All Types</option>
+                        {% for task_type in task_types %}
+                            <option value="{{ task_type }}"
+                                {% if task_type == selected_task_type %}selected{% endif %}>
+                                {{ task_type }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Кнопка создания задачи -->
+    <a href="{{ url_for('create_task') }}" class="btn btn-primary mb-4">Create New Task</a>
+
+    <!-- Группировка по отделам -->
+    {% for department in departments %}
+        {% set department_tasks = tasks|selectattr('department', 'equalto', department)|list %}
+        {% if department_tasks and (not selected_department or department.id == selected_department) %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <center><h4 class="mb-0" style="color: white">{{ department.name }}</h4></center>
+                </div>
+
+                <div class="card-body">
+                    <!-- Группировка по типам задач внутри отдела -->
+                    {% for task_type in task_types %}
+                        {% set type_tasks = department_tasks|selectattr('task_type', 'equalto', task_type)|sort(attribute='start_date') %}
+                        {% if type_tasks and (not selected_task_type or task_type == selected_task_type) %}
+                            <div class="mb-4">
+                                <h5 class="text-secondary mb-3">{{ task_type }}</h5>
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Title</th>
+                                                <th>Start Date</th>
+                                                <th>End Date</th>
+                                                <th>Expenses</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                                <th>Assignee</th>
+<!--                                                <th>Actions</th>-->
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for task in type_tasks|sort(attribute='start_date') %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{{ url_for('task', id=task.id) }}"
+                                                           class="text-decoration-none">
+                                                            {{ task.title }}
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ task.start_date.strftime('%d.%m.%Y') }}</td>
+                                                    <td>{{ task.end_date.strftime('%d.%m.%Y') }}</td>
+                                                    <td class="expenses-column">
+                                                        {% set planned = task.planned_expenses|sum(attribute='amount') %}
+                                                        {% set actual = task.actual_expenses|sum(attribute='amount') %}
+
+                                                        {% if planned + actual > 0 %}
+                                                            <div class="d-flex flex-column">
+                                                                <span class="text-primary small">
+                                                                    Plan: {{ planned|format_currency }}
+                                                                </span>
+                                                                <span class="text-success small">
+                                                                    Fact: {{ actual|format_currency }}
+                                                                </span>
+                                                                <span class="text-danger small">
+                                                                    {{ "%0.2f"|format((actual / planned) * 100) }}%
+                                                                </span>
+                                                            </div>
+                                                        {% else %}
+                                                            <span class="text-muted">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="btn btn-sm priority-{{ task.priority }}">
+                                                            {{ task.priority|upper }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="btn btn-sm status-{{ task.status }}">
+                                                            {{ task.status|title|replace('_', ' ') }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ task.assignee.name }}</td>
+<!--                                                    <td>-->
+<!--                                                        <div class="d-flex gap-2">-->
+<!--                                                            <a href="{{ url_for('edit_task', id=task.id) }}"-->
+<!--                                                               class="btn btn-sm btn-warning">Edit</a>-->
+<!--                                                            <form method="POST"-->
+<!--                                                                  action="{{ url_for('delete_task', id=task.id) }}">-->
+<!--                                                                <button type="submit"-->
+<!--                                                                        class="btn btn-sm btn-danger">Delete</button>-->
+<!--                                                            </form>-->
+<!--                                                            <a href="{{ url_for('add_planned_expense', task_id=task.id) }}"-->
+<!--                                                               class="btn btn-sm btn-info">+ Plan</a>-->
+<!--                                                            <a href="{{ url_for('add_actual_expense', task_id=task.id) }}"-->
+<!--                                                               class="btn btn-sm btn-success">+ Actual</a>-->
+<!--                                                        </div>-->
+<!--                                                    </td>-->
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- Сообщение если нет задач -->
+    {% if not tasks %}
+        <div class="alert alert-info">
+            No tasks found matching the selected filters.
+        </div>
+    {% endif %}
+
+    <style>
+        /* Стили для приоритетов */
+        .priority-high { background-color: #dc3545; color: white; border: none; }
+        .priority-medium { background-color: #ffc107; color: black; border: none; }
+        .expenses-column {
+            min-width: 120px;
+            max-width: 160px;
+        }
+        .expenses-column .small {
+            line-height: 1.2;
+        }
+        .priority-low { background-color: #28a745; color: white; border: none; }
+
+        /* Стили для статусов */
+        .status-todo { background-color: #6c757d; color: white; border: none; }
+        .status-in_progress { background-color: #17a2b8; color: white; border: none; }
+        .status-done { background-color: #28a745; color: white; border: none; }
+        .status-on_hold { background-color: #d3d3d3; color: black; border: none; }
+
+        /* Общие стили */
+        .card { border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .table-hover tbody tr:hover { background-color: #f8f9fa; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+    </style>
 {% endblock %}
